@@ -4,6 +4,7 @@ import requests
 import pandas as pd
 import bs4
 import datetime
+import time
 
 # class which takes a mad money suggested article and finds tickers of the recommended stocks
 class MadMoney:
@@ -38,7 +39,7 @@ class MadMoney:
         tickers.remove('tickers')
         for z in range(len(tickers)):
             holder = tickers[z]
-            holder = holder[1:-1]
+            holder = holder[1:]  # for some reason was originally to -1 but got rid of that and it worked
             tickers[z] = holder
         return tickers
 
@@ -94,17 +95,18 @@ def get_price(ticker):
     data, meta_data = ts.get_daily(symbol=ticker, outputsize='compact')
     close_price =  data['4. close'][-2]
     fname = ticker + '.txt'
-    F = open(fname, 'a')
-    if not check_duplicates(fname):
-        F.write(str(close_price))
+    F = open(fname, 'a+')
+    # if not check_duplicates(fname):
+    F.write(str(close_price))
+    F.write('\n')
+    F.close()
 
 
 # create file with the data opened for a stock
 def create_db(fname):
-
-    file = open(fname, 'w+')
-    date = str(datetime.datetime.now())[0:10]
+    file = open(fname, 'a')
     if not check_duplicates(fname):
+        date = str(datetime.datetime.now())[0:10]
         file.write(date)
         file.write('\n')
         file.close()
@@ -114,7 +116,8 @@ def create_db(fname):
 def check_duplicates(fname):
     F = open(fname, 'r')
     date = str(datetime.datetime.now())[0:10]
-    for line in F.readline():
+    date += '\n'
+    for line in F.readlines():
         if date == line:
             return True
     return False
@@ -132,7 +135,7 @@ def keep_tracking(fname):
         return True
 
 print('Enter new Cramer articles to crawl or nothing to update')
-url = input()
+url = input()[:-1]
 if url != '':
     daily_tickers = MadMoney(url).get_tickers()
     F = open('Stock_Suggestions.txt', 'a')
@@ -146,8 +149,8 @@ F = open('Stock_Suggestions.txt', 'r')
 for lines in F.readlines():
     if lines != 'end':
         lines = lines[:-1] # gets rid of the new line character
-        print(lines)
         fname = lines + '.txt'
         create_db(fname)
         if keep_tracking(fname):
+            time.sleep(5)
             get_price(lines)
